@@ -1,5 +1,7 @@
 # EFI Bootmgr
 
+This is a gnome-shell extension.
+
 Lets you select the next (temporary) EFI Bootentry to boot.
 Alternatively also lets you to boot into EFI Firmware to change efi settings.
 
