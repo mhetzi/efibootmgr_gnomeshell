@@ -198,18 +198,41 @@ export class EFIBootMgr {
         }
     }
 
+    execCommand(argv, input = null, cancellable = null) {
+        let flags = Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE;
+    
+        if (input !== null)
+            flags |= Gio.SubprocessFlags.STDIN_PIPE;
+    
+        let proc = new Gio.Subprocess({
+            argv: argv,
+            flags: flags
+        });
+        proc.init(cancellable);
+        return new Promise((resolve,reject) => {
+            proc.communicate_utf8_async(input, cancellable, (proc, res) => {
+                try {
+                    resolve([(function() {
+                        if(!proc.get_if_exited())
+                            throw new Error("Subprocess failed to exit in time!");
+                        return proc.get_exit_status()
+                    })()].concat(proc.communicate_utf8_finish(res).slice(1)));
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        });
+    }
+
     async setNextBoot(bootnum) {
         try {
             const args = (bootnum === -100) ? 
                 ['pkexec', '--disable-internal-agent', 'efibootmgr', '-N'] :
                 ['pkexec', '--disable-internal-agent', 'efibootmgr', '-n', String(bootnum)];
-            const proc = Gio.Subprocess.new( args,
-                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
-            );
 
             const cancellable = new Gio.Cancellable();
-            await proc.wait_async(cancellable, () => console.log("setNextBoot done") );
-            this.readEfiBootMgr(proc);
+            await this.execCommand(args, null, cancellable);
+            this.execBootmgr();
         } catch (e) {
             logError(e);
         }
@@ -223,8 +246,8 @@ export class EFIBootMgr {
             );
 
             const cancellable = new Gio.Cancellable();
-            await proc.wait_async(cancellable, () => console.log("setNextBoot done") );
-            this.execBootmgr();
+            await proc.wait_async(cancellable, () => console.log("changeFwBoot done") );
+            await this.execBootmgr();
         } catch (e) {
             logError(e);
         }

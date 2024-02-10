@@ -29,21 +29,22 @@ import {EFIBootMgr} from "./efibootmgr.js";
 const ExampleMenuToggle = GObject.registerClass(
     class ExampleMenuToggle extends QuickMenuToggle {
         _init() {
-            this._efi = new EFIBootMgr();
-            this._efi.execBootmgr();
-
             super._init({
                 title: "EFI Boot",
-                subtitle: String(this._efi.current_num),
+                subtitle: "No Data",
                 iconName: 'application-x-firmware-symbolic',
                 toggleMode: true,
             });
 
+            
+            this._efi = new EFIBootMgr();
+            this._efi.execBootmgr();
+            this.updateData();
             this.connect('clicked', async () => {
                 if (this._efi.diffBoot)
-                    await this.setNextBoot(-100);
-                if (this._efi.boot_to_fw_active){
-                    await this.changeFwBoot(false);
+                    this.setNextBoot(-100);
+                if (this._efi.boot_to_fw_active) {
+                    this.changeFwBoot(false);
                 }
             });
     
@@ -51,8 +52,6 @@ const ExampleMenuToggle = GObject.registerClass(
             this.current_num = 0;
             this.next_num = null;
             this.diffBoot = false;
-
-            this.updateData();
     
             const headerSuffix = new St.Icon({
                 iconName: 'application-x-firmware-symbolic',
@@ -69,19 +68,17 @@ const ExampleMenuToggle = GObject.registerClass(
 
                 console.info(`Adding bootnum ${item.number} with name: ${item.name} to menuSelection...`);
 
-                const f = (num) => this.setNextBoot(num);
+                const f = async (num) => await this.setNextBoot(num);
                 const bound = f.bind(this, item.number)
 
                 this._itemsSection.addAction(`${item.number}: ${item.name}`, bound);
             }
             
             if (this._efi.boot_to_fw_supported){
-                this._itemsSection.addAction("To Firmware", () => this.changeFwBoot(true));
+                this._itemsSection.addAction("To Firmware", async () => await this.changeFwBoot(true));
             }
 
             this.menu.addMenuItem(this._itemsSection);
-    
-            // Add an entry-point for more settings
             this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
         }
 
@@ -103,13 +100,11 @@ const ExampleMenuToggle = GObject.registerClass(
         }
 
         async setNextBoot(num){
-            await this._efi.setNextBoot(num);
-            this.updateData();
+            this._efi.setNextBoot(num).finally( () => this.updateData() );
         }
 
         async changeFwBoot(change){
-            await this._efi.changeFwBoot(change);
-            this.updateData();
+            this._efi.changeFwBoot(change).finally( () => this.updateData() );
         }
 
     });
