@@ -1,0 +1,8 @@
+{
+  "name": "EFI Bootselect",
+  "description": "Lets user select which EFI entry gets booted on next boot",
+  "uuid": "efibootmgr.gnome.mh7596@gmail.com",
+  "shell-version": [
+    "45"
+  ]
+}
